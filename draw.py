@@ -32,7 +32,7 @@ def Canvas_delete():
     color_px = np.zeros((420, 420), dtype=int)
     color_px_short = np.zeros((28, 28), dtype=int)
     color_px_line = [0] * (784)
-    print(color_px_line)
+    # print(color_px_line)
     
 
 Canvas = Canvas(win, width=420, height=420, bg="#ffffff", highlightthickness=3, highlightbackground="#000000")
@@ -129,7 +129,8 @@ def Detect_number():
 
     color_px_short = np.rot90(np.flipud(color_px_short), k=-1) # rotation de -90° et symétrie orthogonale 
     color_px_line = color_px_short.flatten()
-    print(color_px_short, "\n-------------------")
+    # print(color_px_short, "\n-------------------")
+    print(color_px_line)
 
 
 picture_Detected = ImageTk.PhotoImage(image=Image.open("Picture/Detected.png").resize((160, 40), Image.LANCZOS))
