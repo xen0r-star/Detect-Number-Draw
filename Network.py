@@ -1,5 +1,10 @@
 import numpy as np
+import signal
+import pickle
+import os
+import time
 from ReadData import ReadData
+from ProgressBar import *
 
 DataInputFile, DataOutputFile = ReadData("Data.dat")
 
@@ -8,31 +13,93 @@ DataInput = np.array(DataInputFile)
 DataOutput = np.array(DataOutputFile)
 
 input_dim = DataInput.shape[1] # Nombre de neurone pour l'input
-hidden_dim1 = 16 # Nombre de neurone de la couche cachee 1 ; 256 
-hidden_dim2 = 16 # Nombre de neurone de la couche cachee 1 ; 128
-hidden_dim3 = 16 # Nombre de neurone de la couche cachee 1 ; 64
+hidden_dim1 = 256 # Nombre de neurone de la couche cachee 1 ; 256 
+hidden_dim2 = 128 # Nombre de neurone de la couche cachee 1 ; 128
+hidden_dim3 = 64 # Nombre de neurone de la couche cachee 1 ; 64
 output_dim = 1 # Nombre de neurone pour l'output
 
 # Taux d'apprentissage
 learning_rate = 0.01
-learning = 100000
 
-# ---------------------
+# Historique des pertes
+loss_history = []
+iteration = 0
+loss = 0
 
-
-weights_hidden1 = np.random.randn(input_dim, hidden_dim1) # Poids et biais de la couche cachee 1
-bias_hidden1 = np.zeros((1, hidden_dim1))
-
-weights_hidden2 = np.random.randn(hidden_dim1, hidden_dim2) # Poids et biais de la couche cachee 2
-bias_hidden2 = np.zeros((1, hidden_dim2))
-
-weights_hidden3 = np.random.randn(hidden_dim2, hidden_dim3) # Poids et biais de la couche cachee 3
-bias_hidden3 = np.zeros((1, hidden_dim3))
-
-weights_output = np.random.randn(hidden_dim3, output_dim) # Poids et biais de la couche output
-bias_output = np.zeros((1, output_dim))
+# Temps
+start_time = time.time()
 
 # -------------
+
+# Donner modele
+if not os.path.exists("modele.pkl"):
+    weights_hidden1 = np.random.randn(input_dim, hidden_dim1) # Poids et biais de la couche cachee 1
+    bias_hidden1 = np.zeros((1, hidden_dim1))
+
+    weights_hidden2 = np.random.randn(hidden_dim1, hidden_dim2) # Poids et biais de la couche cachee 2
+    bias_hidden2 = np.zeros((1, hidden_dim2))
+
+    weights_hidden3 = np.random.randn(hidden_dim2, hidden_dim3) # Poids et biais de la couche cachee 3
+    bias_hidden3 = np.zeros((1, hidden_dim3))
+
+    weights_output = np.random.randn(hidden_dim3, output_dim) # Poids et biais de la couche output
+    bias_output = np.zeros((1, output_dim))
+else :
+    with open('modele.pkl', 'rb') as file:
+        params = pickle.load(file)
+
+# Recuperation des poids et biais
+weights_hidden1 = params['weights_hidden1']
+bias_hidden1 = params['bias_hidden1']
+weights_hidden2 = params['weights_hidden2']
+bias_hidden2 = params['bias_hidden2']
+weights_hidden3 = params['weights_hidden3']
+bias_hidden3 = params['bias_hidden3']
+weights_output = params['weights_output']
+bias_output = params['bias_output']
+iteration = params['iteration']
+loss = params['loss']
+time_text = params['time_text']
+
+# -------------
+
+#Temps
+def show_time(temps_total):
+    heures = temps_total // 3600
+    minutes = (temps_total % 3600) // 60
+    secondes = temps_total % 60
+    temps_formate = "{:02d}:{:02d}:{:02d}".format(int(heures), int(minutes), int(secondes))
+    return temps_formate
+
+# Stat
+print(f"+---------+------------+----------+\n|  \033[91mLayer\033[0m  |  \033[91mNumber N\033[0m  |   \033[91mLink\033[0m   |\n+---------+------------+----------+\n| \033[94mInput\033[0m   | \033[92m{str(input_dim) + ' ' * (10 - len(str(input_dim)))}\033[0m | \033[93m-\033[0m        |\n| \033[96mHidden1\033[0m | \033[92m{str(hidden_dim1) + ' ' * (10 - len(str(hidden_dim1)))}\033[0m | \033[93m{str(input_dim * hidden_dim1) + ' ' * (8 - len(str(input_dim * hidden_dim1)))}\033[0m |\n| \033[96mHidden2\033[0m | \033[92m{str(hidden_dim2) + ' ' * (10 - len(str(hidden_dim2)))}\033[0m | \033[93m{str(hidden_dim1 * hidden_dim2) + ' ' * (8 - len(str(hidden_dim1 * hidden_dim2)))}\033[0m |\n| \033[96mHidden3\033[0m | \033[92m{str(hidden_dim3) + ' ' * (10 - len(str(hidden_dim3)))}\033[0m | \033[93m{str(hidden_dim2 * hidden_dim3) + ' ' * (8 - len(str(hidden_dim2 * hidden_dim3)))}\033[0m |\n| \033[94mOutput\033[0m  | \033[92m{str(output_dim) + ' ' * (10 - len(str(output_dim)))}\033[0m | \033[93m{str(hidden_dim3 * output_dim) + ' ' * (8 - len(str(hidden_dim3 * output_dim)))}\033[0m |\n+---------+------------+----------+\n\033[91mRate\033[0m : \033[96m{learning_rate}\033[0m\n\033[91mLearning\033[0m : \033[96m{iteration}\033[0m\n\033[91mTime\033[0m : \033[96m{time_text}\033[0m")
+print("\n\033[92mProgress learning neural networks...\033[0m")
+
+# -------------
+
+# Fonction d'interruption et de sauvegarde
+def handle_interrupt(signal, frame):
+    print("\n\n\033[91mInterrupt, save settings...\033[0m")
+    params = {
+        'weights_hidden1': weights_hidden1,
+        'bias_hidden1': bias_hidden1,
+        'weights_hidden2': weights_hidden2,
+        'bias_hidden2': bias_hidden2,
+        'weights_hidden3': weights_hidden3,
+        'bias_hidden3': bias_hidden3,
+        'weights_output': weights_output,
+        'bias_output': bias_output,
+        'iteration': iteration,
+        'loss': loss,
+        'time_text': time_text
+    }
+
+    with open('modele.pkl', 'wb') as file:
+        pickle.dump(params, file)
+    
+    print("\033[92mParameters saved, output\033[0m")
+    exit(0)
+signal.signal(signal.SIGINT, handle_interrupt)
 
 # Fonction d'activation (sigmoid)
 def sigmoid(x):
@@ -42,12 +109,10 @@ def sigmoid(x):
 def sigmoid_derivative(x):
     return x * (1 - x)
 
-# Modifiez la fonction d'activation pour la couche de sortie
-def linear_activation(x):
-    return x
-
 # Entrainement du modele
-for iteration in range(learning):
+while True:
+    iteration += 1
+
     # Propagation
     hidden_layer_activation1 = np.dot(DataInput, weights_hidden1) + bias_hidden1 # Couche cache 1
     hidden_layer_output1 = sigmoid(hidden_layer_activation1)
@@ -62,8 +127,12 @@ for iteration in range(learning):
     output_layer_output = sigmoid(output_layer_activation)
     
     # Calcul de l'erreur
-    error = np.mean(np.square(DataOutput - output_layer_output))
-    
+    error = DataOutput - output_layer_output
+
+    # Calcul de la perte
+    loss = np.mean(error**2)
+    loss_history.append(loss)
+
     # Retropropagation 
     d_output = error * sigmoid_derivative(output_layer_output) # Calcul des gradients pour la couche output
 
@@ -85,24 +154,29 @@ for iteration in range(learning):
     weights_output += hidden_layer_output3.T.dot(d_output) * learning_rate # Mise a jour des poids et biais pour la couche output
     bias_output += np.sum(d_output, axis=0, keepdims=True) * learning_rate
 
+    current_time = time.time()
+    current_time -= start_time
+    time_text = show_time(current_time)
+    update_progress_bar(iteration, loss, time_text)
+
 
 # Prediction
-def PredictingResults(value):
-    value_np = np.array(value)
-    hidden_layer_activation1 = np.dot(value_np, weights_hidden1) + bias_hidden1 # Couche cacher 1
-    hidden_layer_output1 = sigmoid(hidden_layer_activation1)
+# def PredictingResults(value):
+#     hidden_layer_activation1 = np.dot(value, weights_hidden1) + bias_hidden1 # Couche cacher 1
+#     hidden_layer_output1 = sigmoid(hidden_layer_activation1)
 
-    hidden_layer_activation2 = np.dot(hidden_layer_output1, weights_hidden2) + bias_hidden2 # Couche cacher 2
-    hidden_layer_output2 = sigmoid(hidden_layer_activation2)
+#     hidden_layer_activation2 = np.dot(hidden_layer_output1, weights_hidden2) + bias_hidden2 # Couche cacher 2
+#     hidden_layer_output2 = sigmoid(hidden_layer_activation2)
 
-    hidden_layer_activation3 = np.dot(hidden_layer_output2, weights_hidden3) + bias_hidden3 # Couche cacher 3
-    hidden_layer_output3 = sigmoid(hidden_layer_activation3)
+#     hidden_layer_activation3 = np.dot(hidden_layer_output2, weights_hidden3) + bias_hidden3 # Couche cacher 3
+#     hidden_layer_output3 = sigmoid(hidden_layer_activation3)
 
-    output_layer_activation = np.dot(hidden_layer_output3, weights_output) + bias_output
-    predicted_output = linear_activation(output_layer_activation)  # Utilisez la fonction d'activation linéaire
+#     output_layer_activation = np.dot(hidden_layer_output3, weights_output) + bias_output
+#     predicted_output = output_layer_activation # Utilisez la fonction d'activation linéaire
 
-    return predicted_output
+#     return predicted_output
 
 
-print("Sortie predite apres apprentissage :")
-print(PredictingResults([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+# print("\n\nSortie predite apres apprentissage :")
+# print(PredictingResults([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
+# # Reponse attendue 4

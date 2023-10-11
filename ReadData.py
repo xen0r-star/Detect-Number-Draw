@@ -18,4 +18,4 @@ def ReadData(filename):
         resultats.append([result])  # Ajout sous forme de liste avec un seul élément
         donnees.append(data)
 
-    return resultats, donnees
+    return donnees, resultats
