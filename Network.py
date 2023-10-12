@@ -28,6 +28,7 @@ loss = 0
 
 # Temps
 start_time = time.time()
+time_update = 0
 
 # -------------
 
@@ -44,22 +45,25 @@ if not os.path.exists("modele.pkl"):
 
     weights_output = np.random.randn(hidden_dim3, output_dim) # Poids et biais de la couche output
     bias_output = np.zeros((1, output_dim))
+
+    # Autre donnee
+    time_all = 0
 else :
     with open('modele.pkl', 'rb') as file:
         params = pickle.load(file)
 
-# Recuperation des poids et biais
-weights_hidden1 = params['weights_hidden1']
-bias_hidden1 = params['bias_hidden1']
-weights_hidden2 = params['weights_hidden2']
-bias_hidden2 = params['bias_hidden2']
-weights_hidden3 = params['weights_hidden3']
-bias_hidden3 = params['bias_hidden3']
-weights_output = params['weights_output']
-bias_output = params['bias_output']
-iteration = params['iteration']
-loss = params['loss']
-time_text = params['time_text']
+    # Recuperation des poids et biais
+    weights_hidden1 = params['weights_hidden1']
+    bias_hidden1 = params['bias_hidden1']
+    weights_hidden2 = params['weights_hidden2']
+    bias_hidden2 = params['bias_hidden2']
+    weights_hidden3 = params['weights_hidden3']
+    bias_hidden3 = params['bias_hidden3']
+    weights_output = params['weights_output']
+    bias_output = params['bias_output']
+    iteration = params['iteration']
+    loss = params['loss']
+    time_all = params['time_all']
 
 # -------------
 
@@ -72,6 +76,7 @@ def show_time(temps_total):
     return temps_formate
 
 # Stat
+time_text = show_time(time_all)
 print(f"+---------+------------+----------+\n|  \033[91mLayer\033[0m  |  \033[91mNumber N\033[0m  |   \033[91mLink\033[0m   |\n+---------+------------+----------+\n| \033[94mInput\033[0m   | \033[92m{str(input_dim) + ' ' * (10 - len(str(input_dim)))}\033[0m | \033[93m-\033[0m        |\n| \033[96mHidden1\033[0m | \033[92m{str(hidden_dim1) + ' ' * (10 - len(str(hidden_dim1)))}\033[0m | \033[93m{str(input_dim * hidden_dim1) + ' ' * (8 - len(str(input_dim * hidden_dim1)))}\033[0m |\n| \033[96mHidden2\033[0m | \033[92m{str(hidden_dim2) + ' ' * (10 - len(str(hidden_dim2)))}\033[0m | \033[93m{str(hidden_dim1 * hidden_dim2) + ' ' * (8 - len(str(hidden_dim1 * hidden_dim2)))}\033[0m |\n| \033[96mHidden3\033[0m | \033[92m{str(hidden_dim3) + ' ' * (10 - len(str(hidden_dim3)))}\033[0m | \033[93m{str(hidden_dim2 * hidden_dim3) + ' ' * (8 - len(str(hidden_dim2 * hidden_dim3)))}\033[0m |\n| \033[94mOutput\033[0m  | \033[92m{str(output_dim) + ' ' * (10 - len(str(output_dim)))}\033[0m | \033[93m{str(hidden_dim3 * output_dim) + ' ' * (8 - len(str(hidden_dim3 * output_dim)))}\033[0m |\n+---------+------------+----------+\n\033[91mRate\033[0m : \033[96m{learning_rate}\033[0m\n\033[91mLearning\033[0m : \033[96m{iteration}\033[0m\n\033[91mTime\033[0m : \033[96m{time_text}\033[0m")
 print("\n\033[92mProgress learning neural networks...\033[0m")
 
@@ -91,7 +96,7 @@ def handle_interrupt(signal, frame):
         'bias_output': bias_output,
         'iteration': iteration,
         'loss': loss,
-        'time_text': time_text
+        'time_all': time_all
     }
 
     with open('modele.pkl', 'wb') as file:
@@ -154,10 +159,12 @@ while True:
     weights_output += hidden_layer_output3.T.dot(d_output) * learning_rate # Mise a jour des poids et biais pour la couche output
     bias_output += np.sum(d_output, axis=0, keepdims=True) * learning_rate
 
-    current_time = time.time()
-    current_time -= start_time
+    current_time = time.time() - start_time
+    time_all = (current_time - time_update) + time_all
+    time_update = current_time
+
     time_text = show_time(current_time)
-    update_progress_bar(iteration, loss, time_text)
+    update_progress_bar(iteration, loss, loss_history[-1] - loss, time_text)
 
 
 # Prediction
