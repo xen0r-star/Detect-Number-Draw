@@ -10,7 +10,7 @@ from ProgressBarNC import update_progress_bar
 # --------[ Valeur ]--------
 
 learning_rate = 0.01
-modele = "modele2.pkl"
+modele = "Model/model2.pkl"
 
 loss_history = []
 iteration = 0

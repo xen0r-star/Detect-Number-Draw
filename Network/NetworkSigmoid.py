@@ -12,7 +12,7 @@ DataInputFile, DataOutputFile = ReadData("Data.dat")
 DataInput = np.array(DataInputFile)
 DataOutput = np.array(DataOutputFile)
 
-modele = "modele1.pkl"
+modele = "Model/model1.pkl"
 
 input_dim = DataInput.shape[1] # Nombre de neurone pour l'input
 hidden_dim1 = 256 # Nombre de neurone de la couche cachee 1 ; 256 

@@ -5,7 +5,7 @@ from Network.ModeleDetect import ModeleDetect
 
 first_color = "#C6C6C6"
 epaisseur = 20
-
+modele = "Network/Model/model2.pkl"
 
 win = Tk()
 win.title("Detect Number Draw")
@@ -135,7 +135,7 @@ def Detect_number():
     color_px_short = np.rot90(np.flipud(color_px_short), k=-1) # rotation de -90° et symétrie orthogonale 
     color_px_line = color_px_short.flatten()
 
-    answer = ModeleDetect(color_px_line, "Network/modele2.pkl")
+    answer = ModeleDetect(color_px_line, modele)
 
     if answer >= 0 and answer <= 9:
         picture_Result = ImageTk.PhotoImage(image=Image.open("Picture/Result " + str(answer) + ".png").resize((40, 40), Image.LANCZOS))
