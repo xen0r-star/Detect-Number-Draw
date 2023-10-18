@@ -8,7 +8,7 @@ weights  = np.random.rand(3)
 bias = np.random.rand()
 
 learning_rate = 0.01
-learning = 10000
+learning = 2500
 
 for iteration in range(learning):
     total_error = 0
@@ -21,7 +21,7 @@ for iteration in range(learning):
         weights += learning_rate * error * DataInput[i]
         bias += learning_rate * error
 
-    sys.stdout.write('\rLearning : {} | Loss : {:.15f}'.format(iteration, total_error / len(DataInput)))
+    sys.stdout.write('\rLearning : {} | Loss : {:.15f}'.format(iteration + 1, total_error / len(DataInput)))
     sys.stdout.flush()
 
 print("\n")
@@ -29,6 +29,9 @@ while True:
     a = int(input("Le premier nombre de la suite : \033[96m"))
     b = [a, a + 1, a + 2]
     test_input = np.array(b)
-    predicted_output = np.dot(test_input, weights) + bias
+    predicted_output = int(np.dot(test_input, weights) + bias)
 
-    print(f"\033[0mLa prediction pour [\033[96m{b[0]}\033[0m, \033[96m{b[1]}\033[0m, \033[96m{b[2]}\033[0m] est : \033[93m{int(predicted_output)}\033[0m \n")
+    if predicted_output != a + 3:
+        predicted_output = "Erreur"
+
+    print(f"\033[0mLa prediction pour [\033[96m{b[0]}\033[0m, \033[96m{b[1]}\033[0m, \033[96m{b[2]}\033[0m] est : \033[93m{predicted_output}\033[0m \n")
