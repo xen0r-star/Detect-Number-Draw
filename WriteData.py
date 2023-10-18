@@ -8,7 +8,7 @@ import numpy as np
 
 first_color = "#C6C6C6"
 epaisseur = 20
-file = "Data.dat"
+file = "Network/Data.dat"
 
 win = Tk()
 win.title("Detect Number Draw - WriteData")
@@ -93,10 +93,11 @@ def Detect_number(category):
     color_px_line = color_px_short.flatten()
     color_px_list = color_px_line.tolist()
 
-    ReadData(file, category, color_px_list)
+    WriteData(file, category, color_px_list)
     Canvas_delete()
 
-def ReadData(filename, category, value):
+def WriteData(filename, category, value):
+    print(value)
     if not path.isfile(filename):
         raise FileNotFoundError("File not found")
 

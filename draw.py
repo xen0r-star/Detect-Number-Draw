@@ -1,6 +1,7 @@
 from tkinter import *
 from PIL import Image, ImageTk
 import numpy as np
+from Network.ModeleDetect import ModeleDetect
 
 first_color = "#C6C6C6"
 epaisseur = 20
@@ -32,13 +33,15 @@ def Canvas_delete():
     color_px = np.zeros((420, 420), dtype=int)
     color_px_short = np.zeros((28, 28), dtype=int)
     color_px_line = [0] * (784)
-    # print(color_px_line)
+    
+    picture_Result = ImageTk.PhotoImage(image=Image.open("Picture/Result.png").resize((40, 40), Image.LANCZOS))
+    Result.config(image=picture_Result)
+    Result.image = picture_Result
     
 
 Canvas = Canvas(win, width=420, height=420, bg="#ffffff", highlightthickness=3, highlightbackground="#000000")
 Canvas.grid(row=1, columnspan=3, pady=(0,20))
 Canvas.create_rectangle(0, 0, 420, 420, fill="#ffffff", width=0)
-Canvas_delete()
 
 etatboutonsouris='haut'
 draw_color_stat = "#000000"
@@ -65,9 +68,6 @@ def declic(event):
     x2=event.x
     y2=event.y
 Canvas.bind('<ButtonRelease-1>', declic)
-
-
-
 
 
 Draw = Frame(win, bg=first_color)
@@ -108,9 +108,14 @@ Bucket = Button(Draw, command=Canvas_delete, image=picture_Bucket, bg=first_colo
 Bucket.grid(row=0, column=2, ipadx=2, ipady=2)
 
 def Detect_number():
+    picture_Result = ImageTk.PhotoImage(image=Image.open("Picture/Result load.png").resize((40, 40), Image.LANCZOS))
+    Result.config(image=picture_Result)
+    Result.image = picture_Result
+
     global color_px
     global color_px_short
     global color_px_line
+
     for a in range(420):
         for b in range(420):
             pixel = Canvas.find_closest(a, b)
@@ -129,8 +134,17 @@ def Detect_number():
 
     color_px_short = np.rot90(np.flipud(color_px_short), k=-1) # rotation de -90° et symétrie orthogonale 
     color_px_line = color_px_short.flatten()
-    # print(color_px_short, "\n-------------------")
-    print(color_px_line)
+
+    answer = ModeleDetect(color_px_line, "Network/modele2.pkl")
+
+    if answer >= 0 and answer <= 9:
+        picture_Result = ImageTk.PhotoImage(image=Image.open("Picture/Result " + str(answer) + ".png").resize((40, 40), Image.LANCZOS))
+        Result.config(image=picture_Result)
+        Result.image = picture_Result
+    else:
+        picture_Result = ImageTk.PhotoImage(image=Image.open("Picture/Result load.png").resize((40, 40), Image.LANCZOS))
+        Result.config(image=picture_Result)
+        Result.image = picture_Result
 
 
 picture_Detected = ImageTk.PhotoImage(image=Image.open("Picture/Detected.png").resize((160, 40), Image.LANCZOS))
@@ -142,6 +156,6 @@ picture_Result = ImageTk.PhotoImage(image=Image.open("Picture/Result.png").resiz
 Result = Label(win, image=picture_Result, bg=first_color, bd=0, highlightthickness=0, activebackground=first_color)
 Result.grid(row=2, column=2, sticky=E, padx=(0, 40))
 
-
+Canvas_delete()
 
 win.mainloop()
