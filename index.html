@@ -1,3 +1,37 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Jeu sur l'IA</title><link rel="shortcut icon" href="Site/Picture/0.svg" type="image/x-icon">
 <style>body{margin:0px}iframe{border:0;}</style>
-<iframe src="Site/index.html" width="100%" height="100%"></iframe>
+<style>
+    
+    @media (min-width: 900px) {
+        #PC {
+            display: block;
+        }
+        #Telephone {
+            display: none;
+        }
+    }
+
+    @media (max-width: 899px) {
+        #PC {
+            display: none;
+        }
+        #Telephone {
+            display: block;
+        }
+    }
+
+    #Telephone {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        text-align: center;
+    }
+</style>
+<div id="PC">
+    <iframe src="Site/index.html" width="100%" height="100%"></iframe>
+</div>
+<div id="Telephone">
+    <h1>Écran trop petit pour une expérience de jeu optimale.</h1>
+</div>
